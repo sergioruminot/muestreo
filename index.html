@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regiones de Rechazo y No Rechazo - Distribución Normal</title>
+    
+    <!-- React y ReactDOM desde CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone para transpilar JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+        
+        // Función para calcular el valor crítico z dado alpha usando aproximación de Beasley-Springer-Moro
+        function getZCritical(alpha) {
+          // Aproximación de la función cuantil de la normal estándar
+          // Para la cola derecha: P(Z > z) = alpha, entonces buscamos el cuantil en 1-alpha
+          const p = 1 - alpha;
+          
+          if (p <= 0 || p >= 1) return 0;
+          
+          // Coeficientes para la aproximación de Beasley-Springer-Moro
+          const a0 = 2.50662823884;
+          const a1 = -18.61500062529;
+          const a2 = 41.39119773534;
+          const a3 = -25.44106049637;
+          
+          const b1 = -8.47351093090;
+          const b2 = 23.08336743743;
+          const b3 = -21.06224101826;
+          const b4 = 3.13082909833;
+          
+          const c0 = 0.3374754822726147;
+          const c1 = 0.9761690190917186;
+          const c2 = 0.1607979714918209;
+          const c3 = 0.0276438810333863;
+          const c4 = 0.0038405729373609;
+          const c5 = 0.0003951896511919;
+          const c6 = 0.0000321767881768;
+          const c7 = 0.0000002888167364;
+          const c8 = 0.0000003960315187;
+          
+          let y = p - 0.5;
+          let r, z;
+          
+          if (Math.abs(y) < 0.42) {
+            r = y * y;
+            z = y * (((a3 * r + a2) * r + a1) * r + a0) / 
+                ((((b4 * r + b3) * r + b2) * r + b1) * r + 1);
+          } else {
+            r = p;
+            if (y > 0) r = 1 - p;
+            r = Math.log(-Math.log(r));
+            z = c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r * (c5 + r * (c6 + r * (c7 + r * c8)))))));
+            if (y < 0) z = -z;
+          }
+          
+          return z;
+        }
+
+        // Función de densidad de la normal estándar
+        function normalPDF(x) {
+          return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+        }
+
+        // Componente principal
+        function App() {
+          // Estados para los niveles de significación (en porcentaje)
+          const [alphaA, setAlphaA] = useState(1);
+          const [alphaB, setAlphaB] = useState(5);
+          
+          // Estado para el tipo de prueba
+          const [testType, setTestType] = useState('dos_colas');
+          
+          // Estado para el tipo de sombreado (solo uno puede estar activo)
+          const [shadeType, setShadeType] = useState('rejection');
+          
+          // Estado para seleccionar qué nivel visualizar
+          const [activeLevel, setActiveLevel] = useState('A');
+          
+          // Cálculo de puntos críticos
+          const criticalPoints = useMemo(() => {
+            const alphaADecimal = alphaA / 100;
+            const alphaBDecimal = alphaB / 100;
+            
+            let pointsA = {};
+            let pointsB = {};
+            
+            if (testType === 'dos_colas') {
+              const zA = getZCritical(alphaADecimal / 2);
+              const zB = getZCritical(alphaBDecimal / 2);
+              pointsA = { left: -zA, right: zA };
+              pointsB = { left: -zB, right: zB };
+            } else if (testType === 'cola_izq') {
+              const zA = -getZCritical(alphaADecimal);
+              const zB = -getZCritical(alphaBDecimal);
+              pointsA = { left: zA };
+              pointsB = { left: zB };
+            } else {
+              const zA = getZCritical(alphaADecimal);
+              const zB = getZCritical(alphaBDecimal);
+              pointsA = { right: zA };
+              pointsB = { right: zB };
+            }
+            
+            return { pointsA, pointsB };
+          }, [alphaA, alphaB, testType]);
+          
+          // Parámetros del gráfico
+          const xMin = -4;
+          const xMax = 4;
+          const width = 800;
+          const height = 400;
+          const padding = 50;
+          const graphWidth = width - 2 * padding;
+          const graphHeight = height - 2 * padding;
+          
+          // Función para convertir coordenadas x a píxeles
+          const xToPixel = (x) => {
+            return padding + ((x - xMin) / (xMax - xMin)) * graphWidth;
+          };
+          
+          // Función para convertir coordenadas y a píxeles
+          const yToPixel = (y) => {
+            const yMax = 0.45;
+            return height - padding - (y / yMax) * graphHeight;
+          };
+          
+          // Generar puntos para la curva normal
+          const curvePoints = useMemo(() => {
+            const points = [];
+            const steps = 200;
+            for (let i = 0; i <= steps; i++) {
+              const x = xMin + (i / steps) * (xMax - xMin);
+              const y = normalPDF(x);
+              points.push(`${xToPixel(x)},${yToPixel(y)}`);
+            }
+            return points.join(' ');
+          }, []);
+          
+          // Función para generar polígono de sombreado
+          const getShadePolygon = (leftBound, rightBound) => {
+            const points = [];
+            const steps = 100;
+            
+            points.push(`${xToPixel(leftBound)},${yToPixel(0)}`);
+            
+            for (let i = 0; i <= steps; i++) {
+              const x = leftBound + (i / steps) * (rightBound - leftBound);
+              const y = normalPDF(x);
+              points.push(`${xToPixel(x)},${yToPixel(y)}`);
+            }
+            
+            points.push(`${xToPixel(rightBound)},${yToPixel(0)}`);
+            
+            return points.join(' ');
+          };
+          
+          return (
+            <div style={{ 
+              fontFamily: 'Arial, sans-serif', 
+              padding: '20px',
+              maxWidth: '1400px',
+              margin: '0 auto'
+            }}>
+              <h1 style={{ textAlign: 'center', color: '#2c3e50', marginBottom: '10px', fontSize: '36px' }}>
+                Regiones de Rechazo y No Rechazo
+              </h1>
+              <h2 style={{ textAlign: 'center', color: '#34495e', fontSize: '18px', fontWeight: 'normal', marginTop: '0', marginBottom: '30px' }}>
+                Niveles de Significación en la Distribución Normal Estándar
+              </h2>
+              
+              <div style={{ 
+                display: 'grid',
+                gridTemplateColumns: '450px 1fr',
+                gap: '30px',
+                alignItems: 'start'
+              }}>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Controles Nivel A */}
+                  <div style={{ 
+                    backgroundColor: '#fff',
+                    padding: '15px',
+                    borderRadius: '6px',
+                    border: '2px solid #e74c3c'
+                  }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: '#e74c3c' }}>Nivel A</h3>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
+                        αA = {alphaA}% (α = {(alphaA / 100).toFixed(2)})
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="50"
+                        step="1"
+                        value={alphaA}
+                        onChange={(e) => setAlphaA(Number(e.target.value))}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#555' }}>
+                      <strong>Puntos críticos:</strong><br/>
+                      {testType === 'dos_colas' && criticalPoints.pointsA.left && criticalPoints.pointsA.right && (
+                        <>z = ±{criticalPoints.pointsA.right.toFixed(3)}</>
+                      )}
+                      {testType === 'cola_izq' && criticalPoints.pointsA.left && (
+                        <>z = {criticalPoints.pointsA.left.toFixed(3)}</>
+                      )}
+                      {testType === 'cola_der' && criticalPoints.pointsA.right && (
+                        <>z = {criticalPoints.pointsA.right.toFixed(3)}</>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Controles Nivel B */}
+                  <div style={{ 
+                    backgroundColor: '#fff',
+                    padding: '15px',
+                    borderRadius: '6px',
+                    border: '2px solid #3498db'
+                  }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: '#3498db' }}>Nivel B</h3>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
+                        αB = {alphaB}% (α = {(alphaB / 100).toFixed(2)})
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="50"
+                        step="1"
+                        value={alphaB}
+                        onChange={(e) => setAlphaB(Number(e.target.value))}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#555' }}>
+                      <strong>Puntos críticos:</strong><br/>
+                      {testType === 'dos_colas' && criticalPoints.pointsB.left && criticalPoints.pointsB.right && (
+                        <>z = ±{criticalPoints.pointsB.right.toFixed(3)}</>
+                      )}
+                      {testType === 'cola_izq' && criticalPoints.pointsB.left && (
+                        <>z = {criticalPoints.pointsB.left.toFixed(3)}</>
+                      )}
+                      {testType === 'cola_der' && criticalPoints.pointsB.right && (
+                        <>z = {criticalPoints.pointsB.right.toFixed(3)}</>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Tipo de prueba y Mostrar regiones */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    
+                    <div style={{ 
+                      backgroundColor: '#f8f9fa',
+                      padding: '15px',
+                      borderRadius: '6px'
+                    }}>
+                      <h4 style={{ margin: '0 0 10px 0' }}>Tipo de Prueba</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="dos_colas"
+                            checked={testType === 'dos_colas'}
+                            onChange={() => setTestType('dos_colas')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Dos colas
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="cola_izq"
+                            checked={testType === 'cola_izq'}
+                            onChange={() => setTestType('cola_izq')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Cola izquierda
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="cola_der"
+                            checked={testType === 'cola_der'}
+                            onChange={() => setTestType('cola_der')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Cola derecha
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div style={{ 
+                      backgroundColor: '#f8f9fa',
+                      padding: '15px',
+                      borderRadius: '6px'
+                    }}>
+                      <h4 style={{ margin: '0 0 10px 0' }}>Mostrar Regiones</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="rejection"
+                            checked={shadeType === 'rejection'}
+                            onChange={() => setShadeType('rejection')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Región de rechazo
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="no_rejection"
+                            checked={shadeType === 'no_rejection'}
+                            onChange={() => setShadeType('no_rejection')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Región de no rechazo
+                        </label>
+                      </div>
+                    </div>
+                    
+                  </div>
+                  
+                  {/* Nivel a visualizar y Leyenda */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    
+                    <div style={{ 
+                      backgroundColor: '#f8f9fa',
+                      padding: '15px',
+                      borderRadius: '6px'
+                    }}>
+                      <h4 style={{ margin: '0 0 10px 0' }}>Nivel a Visualizar</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="A"
+                            checked={activeLevel === 'A'}
+                            onChange={() => setActiveLevel('A')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Nivel A (rojo)
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="B"
+                            checked={activeLevel === 'B'}
+                            onChange={() => setActiveLevel('B')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Nivel B (azul)
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            value="ambos"
+                            checked={activeLevel === 'ambos'}
+                            onChange={() => setActiveLevel('ambos')}
+                            style={{ marginRight: '8px' }}
+                          />
+                          Ambos niveles
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div style={{ 
+                      backgroundColor: '#f8f9fa',
+                      padding: '15px',
+                      borderRadius: '6px'
+                    }}>
+                      <h4 style={{ margin: '0 0 10px 0' }}>Leyenda</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '20px', height: '20px', backgroundColor: '#e74c3c', opacity: 0.3, borderRadius: '3px' }}></div>
+                          <span>Nivel A</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '20px', height: '20px', backgroundColor: '#3498db', opacity: 0.3, borderRadius: '3px' }}></div>
+                          <span>Nivel B</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                  </div>
+                  
+                </div>
+                
+                {/* Gráfico */}
+                <div>
+                  <div style={{ 
+                    backgroundColor: '#fff',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    <svg width={width} height={height} style={{ display: 'block', margin: '0 auto' }}>
+                      
+                      {/* Sombreado de regiones de NO RECHAZO para B */}
+                      {shadeType === 'no_rejection' && (activeLevel === 'B' || activeLevel === 'ambos') && (
+                        <>
+                          {testType === 'dos_colas' && criticalPoints.pointsB.left && criticalPoints.pointsB.right && (
+                            <polygon
+                              points={getShadePolygon(criticalPoints.pointsB.left, criticalPoints.pointsB.right)}
+                              fill="#3498db"
+                              opacity="0.3"
+                            />
+                          )}
+                          {testType === 'cola_izq' && criticalPoints.pointsB.left && (
+                            <polygon
+                              points={getShadePolygon(criticalPoints.pointsB.left, xMax)}
+                              fill="#3498db"
+                              opacity="0.3"
+                            />
+                          )}
+                          {testType === 'cola_der' && criticalPoints.pointsB.right && (
+                            <polygon
+                              points={getShadePolygon(xMin, criticalPoints.pointsB.right)}
+                              fill="#3498db"
+                              opacity="0.3"
+                            />
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Sombreado de regiones de NO RECHAZO para A */}
+                      {shadeType === 'no_rejection' && (activeLevel === 'A' || activeLevel === 'ambos') && (
+                        <>
+                          {testType === 'dos_colas' && criticalPoints.pointsA.left && criticalPoints.pointsA.right && (
+                            <polygon
+                              points={getShadePolygon(criticalPoints.pointsA.left, criticalPoints.pointsA.right)}
+                              fill="#e74c3c"
+                              opacity="0.3"
+                            />
+                          )}
+                          {testType === 'cola_izq' && criticalPoints.pointsA.left && (
+                            <polygon
+                              points={getShadePolygon(criticalPoints.pointsA.left, xMax)}
+                              fill="#e74c3c"
+                              opacity="0.3"
+                            />
+                          )}
+                          {testType === 'cola_der' && criticalPoints.pointsA.right && (
+                            <polygon
+                              points={getShadePolygon(xMin, criticalPoints.pointsA.right)}
+                              fill="#e74c3c"
+                              opacity="0.3"
+                            />
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Sombreado de regiones de RECHAZO para B */}
+                      {shadeType === 'rejection' && (activeLevel === 'B' || activeLevel === 'ambos') && (
+                        <>
+                          {testType === 'dos_colas' && criticalPoints.pointsB.left && criticalPoints.pointsB.right && (
+                            <>
+                              <polygon
+                                points={getShadePolygon(xMin, criticalPoints.pointsB.left)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsB.right, xMax)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                            </>
+                          )}
+                          {testType === 'cola_izq' && criticalPoints.pointsB.left && (
+                            <polygon
+                              points={getShadePolygon(xMin, criticalPoints.pointsB.left)}
+                              fill="#3498db"
+                              opacity="0.3"
+                            />
+                          )}
+                          {testType === 'cola_der' && criticalPoints.pointsB.right && (
+                            <polygon
+                              points={getShadePolygon(criticalPoints.pointsB.right, xMax)}
+                              fill="#3498db"
+                              opacity="0.3"
+                            />
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Sombreado de regiones de RECHAZO para A */}
+                      {shadeType === 'rejection' && (activeLevel === 'A' || activeLevel === 'ambos') && (
+                        <>
+                          {testType === 'dos_colas' && criticalPoints.pointsA.left && criticalPoints.pointsA.right && (
+                            <>
+                              <polygon
+                                points={getShadePolygon(xMin, criticalPoints.pointsA.left)}
+                                fill="#e74c3c"
+                                opacity="0.3"
+                              />
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsA.right, xMax)}
+                                fill="#e74c3c"
+                                opacity="0.3"
+                              />
+                            </>
+                          )}
+                          {testType === 'cola_izq' && criticalPoints.pointsA.left && (
+                            <polygon
+                              points={getShadePolygon(xMin, criticalPoints.pointsA.left)}
+                              fill="#e74c3c"
+                              opacity="0.3"
+                            />
+                          )}
+                          {testType === 'cola_der' && criticalPoints.pointsA.right && (
+                            <polygon
+                              points={getShadePolygon(criticalPoints.pointsA.right, xMax)}
+                              fill="#e74c3c"
+                              opacity="0.3"
+                            />
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Eje X */}
+                      <line
+                        x1={padding}
+                        y1={yToPixel(0)}
+                        x2={width - padding}
+                        y2={yToPixel(0)}
+                        stroke="#333"
+                        strokeWidth="2"
+                      />
+                      
+                      {/* Marcas en el eje X */}
+                      {[-4, -3, -2, -1, 0, 1, 2, 3, 4].map((x) => (
+                        <g key={x}>
+                          <line
+                            x1={xToPixel(x)}
+                            y1={yToPixel(0)}
+                            x2={xToPixel(x)}
+                            y2={yToPixel(0) + 5}
+                            stroke="#333"
+                            strokeWidth="1"
+                          />
+                          <text
+                            x={xToPixel(x)}
+                            y={yToPixel(0) + 20}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="#333"
+                          >
+                            {x}
+                          </text>
+                        </g>
+                      ))}
+                      
+                      {/* Curva normal */}
+                      <polyline
+                        points={curvePoints}
+                        fill="none"
+                        stroke="#2c3e50"
+                        strokeWidth="2.5"
+                      />
+                      
+                      {/* Líneas y puntos críticos A */}
+                      {criticalPoints.pointsA.left && (activeLevel === 'A' || activeLevel === 'ambos') && (
+                        <>
+                          <line
+                            x1={xToPixel(criticalPoints.pointsA.left)}
+                            y1={yToPixel(0)}
+                            x2={xToPixel(criticalPoints.pointsA.left)}
+                            y2={yToPixel(normalPDF(criticalPoints.pointsA.left))}
+                            stroke="#e74c3c"
+                            strokeWidth="2.5"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsA.left)}
+                            cy={yToPixel(normalPDF(criticalPoints.pointsA.left))}
+                            r="5"
+                            fill="#e74c3c"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsA.left)}
+                            cy={yToPixel(0)}
+                            r="5"
+                            fill="#e74c3c"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={xToPixel(criticalPoints.pointsA.left)}
+                            y={yToPixel(0) + 35}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="#e74c3c"
+                            fontWeight="bold"
+                          >
+                            {criticalPoints.pointsA.left.toFixed(2)}
+                          </text>
+                        </>
+                      )}
+                      {criticalPoints.pointsA.right && (activeLevel === 'A' || activeLevel === 'ambos') && (
+                        <>
+                          <line
+                            x1={xToPixel(criticalPoints.pointsA.right)}
+                            y1={yToPixel(0)}
+                            x2={xToPixel(criticalPoints.pointsA.right)}
+                            y2={yToPixel(normalPDF(criticalPoints.pointsA.right))}
+                            stroke="#e74c3c"
+                            strokeWidth="2.5"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsA.right)}
+                            cy={yToPixel(normalPDF(criticalPoints.pointsA.right))}
+                            r="5"
+                            fill="#e74c3c"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsA.right)}
+                            cy={yToPixel(0)}
+                            r="5"
+                            fill="#e74c3c"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={xToPixel(criticalPoints.pointsA.right)}
+                            y={yToPixel(0) + 35}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="#e74c3c"
+                            fontWeight="bold"
+                          >
+                            {criticalPoints.pointsA.right.toFixed(2)}
+                          </text>
+                        </>
+                      )}
+                      
+                      {/* Líneas y puntos críticos B */}
+                      {criticalPoints.pointsB.left && (activeLevel === 'B' || activeLevel === 'ambos') && (
+                        <>
+                          <line
+                            x1={xToPixel(criticalPoints.pointsB.left)}
+                            y1={yToPixel(0)}
+                            x2={xToPixel(criticalPoints.pointsB.left)}
+                            y2={yToPixel(normalPDF(criticalPoints.pointsB.left))}
+                            stroke="#3498db"
+                            strokeWidth="2.5"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsB.left)}
+                            cy={yToPixel(normalPDF(criticalPoints.pointsB.left))}
+                            r="5"
+                            fill="#3498db"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsB.left)}
+                            cy={yToPixel(0)}
+                            r="5"
+                            fill="#3498db"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={xToPixel(criticalPoints.pointsB.left)}
+                            y={yToPixel(0) + 50}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="#3498db"
+                            fontWeight="bold"
+                          >
+                            {criticalPoints.pointsB.left.toFixed(2)}
+                          </text>
+                        </>
+                      )}
+                      {criticalPoints.pointsB.right && (activeLevel === 'B' || activeLevel === 'ambos') && (
+                        <>
+                          <line
+                            x1={xToPixel(criticalPoints.pointsB.right)}
+                            y1={yToPixel(0)}
+                            x2={xToPixel(criticalPoints.pointsB.right)}
+                            y2={yToPixel(normalPDF(criticalPoints.pointsB.right))}
+                            stroke="#3498db"
+                            strokeWidth="2.5"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsB.right)}
+                            cy={yToPixel(normalPDF(criticalPoints.pointsB.right))}
+                            r="5"
+                            fill="#3498db"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <circle
+                            cx={xToPixel(criticalPoints.pointsB.right)}
+                            cy={yToPixel(0)}
+                            r="5"
+                            fill="#3498db"
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={xToPixel(criticalPoints.pointsB.right)}
+                            y={yToPixel(0) + 50}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="#3498db"
+                            fontWeight="bold"
+                          >
+                            {criticalPoints.pointsB.right.toFixed(2)}
+                          </text>
+                        </>
+                      )}
+                      
+                      {/* Etiqueta del eje X */}
+                      <text
+                        x={width / 2}
+                        y={height - 10}
+                        textAnchor="middle"
+                        fontSize="14"
+                        fill="#333"
+                        fontWeight="bold"
+                      >
+                        z
+                      </text>
+                    </svg>
+                  </div>
+                </div>
+                
+              </div>
+              
+              {/* Firma */}
+              <div style={{
+                textAlign: 'center',
+                marginTop: '40px',
+                padding: '20px',
+                fontSize: '14px',
+                color: '#555',
+                borderTop: '1px solid #ddd'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Sergio Ruminot - 2025</div>
+                <div>Departamento de Estadística - FAEA</div>
+                <div>Universidad Nacional del Comahue</div>
+              </div>
+            </div>
+          );
+        }
+
+        // Renderizar la aplicación
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
