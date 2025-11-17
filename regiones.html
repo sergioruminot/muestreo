@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regiones de Rechazo y No Rechazo - Distribución Normal</title>
+    
+    <!-- React y ReactDOM desde CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone para transpilar JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+        
+        // Función para calcular el valor crítico z dado alpha usando aproximación de Beasley-Springer-Moro
+        function getZCritical(alpha) {
+          const p = 1 - alpha;
+          
+          if (p <= 0 || p >= 1) return 0;
+          
+          const a0 = 2.50662823884;
+          const a1 = -18.61500062529;
+          const a2 = 41.39119773534;
+          const a3 = -25.44106049637;
+          
+          const b1 = -8.47351093090;
+          const b2 = 23.08336743743;
+          const b3 = -21.06224101826;
+          const b4 = 3.13082909833;
+          
+          const c0 = 0.3374754822726147;
+          const c1 = 0.9761690190917186;
+          const c2 = 0.1607979714918209;
+          const c3 = 0.0276438810333863;
+          const c4 = 0.0038405729373609;
+          const c5 = 0.0003951896511919;
+          const c6 = 0.0000321767881768;
+          const c7 = 0.0000002888167364;
+          const c8 = 0.0000003960315187;
+          
+          let y = p - 0.5;
+          let r, z;
+          
+          if (Math.abs(y) < 0.42) {
+            r = y * y;
+            z = y * (((a3 * r + a2) * r + a1) * r + a0) / 
+                ((((b4 * r + b3) * r + b2) * r + b1) * r + 1);
+          } else {
+            r = p;
+            if (y > 0) r = 1 - p;
+            r = Math.log(-Math.log(r));
+            z = c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r * (c5 + r * (c6 + r * (c7 + r * c8)))))));
+            if (y < 0) z = -z;
+          }
+          
+          return z;
+        }
+
+        // Función de densidad de la normal estándar
+        function normalPDF(x) {
+          return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+        }
+
+        // Componente principal
+        function App() {
+          // Estados para los niveles de significación (en porcentaje)
+          const [alphaA, setAlphaA] = useState(1);
+          const [alphaB, setAlphaB] = useState(5);
+          
+          // Estado para el tipo de prueba
+          const [testType, setTestType] = useState('cola_der');
+          
+          // Estados individuales para el tipo de sombreado de cada nivel
+          const [shadeTypeA, setShadeTypeA] = useState('rejection');
+          const [shadeTypeB, setShadeTypeB] = useState('rejection');
+          
+          // Estado para seleccionar qué nivel visualizar
+          const [activeLevel, setActiveLevel] = useState('ambos');
+          
+          // Estado para el valor z observado (NUEVA FUNCIONALIDAD)
+          const [zObservado, setZObservado] = useState(0);
+          
+          // Cálculo de puntos críticos
+          const criticalPoints = useMemo(() => {
+            const alphaADecimal = alphaA / 100;
+            const alphaBDecimal = alphaB / 100;
+            
+            let pointsA = {};
+            let pointsB = {};
+            
+            if (testType === 'dos_colas') {
+              const zA = getZCritical(alphaADecimal / 2);
+              const zB = getZCritical(alphaBDecimal / 2);
+              pointsA = { left: -zA, right: zA };
+              pointsB = { left: -zB, right: zB };
+            } else if (testType === 'cola_izq') {
+              const zA = -getZCritical(alphaADecimal);
+              const zB = -getZCritical(alphaBDecimal);
+              pointsA = { left: zA };
+              pointsB = { left: zB };
+            } else {
+              const zA = getZCritical(alphaADecimal);
+              const zB = getZCritical(alphaBDecimal);
+              pointsA = { right: zA };
+              pointsB = { right: zB };
+            }
+            
+            return { pointsA, pointsB };
+          }, [alphaA, alphaB, testType]);
+          
+          // Parámetros del gráfico
+          const xMin = -4;
+          const xMax = 4;
+          const width = 800;
+          const height = 400;
+          const padding = 50;
+          const graphWidth = width - 2 * padding;
+          const graphHeight = height - 2 * padding;
+          
+          // Función para convertir coordenadas x a píxeles
+          const xToPixel = (x) => {
+            return padding + ((x - xMin) / (xMax - xMin)) * graphWidth;
+          };
+          
+          // Función para convertir coordenadas y a píxeles
+          const yToPixel = (y) => {
+            const yMax = 0.45;
+            return height - padding - (y / yMax) * graphHeight;
+          };
+          
+          // Generar puntos para la curva normal
+          const curvePoints = useMemo(() => {
+            const points = [];
+            const steps = 200;
+            for (let i = 0; i <= steps; i++) {
+              const x = xMin + (i / steps) * (xMax - xMin);
+              const y = normalPDF(x);
+              points.push(`${xToPixel(x)},${yToPixel(y)}`);
+            }
+            return points.join(' ');
+          }, []);
+          
+          // Función para generar polígono de sombreado
+          const getShadePolygon = (leftBound, rightBound) => {
+            const points = [];
+            const steps = 100;
+            
+            points.push(`${xToPixel(leftBound)},${yToPixel(0)}`);
+            
+            for (let i = 0; i <= steps; i++) {
+              const x = leftBound + (i / steps) * (rightBound - leftBound);
+              const y = normalPDF(x);
+              points.push(`${xToPixel(x)},${yToPixel(y)}`);
+            }
+            
+            points.push(`${xToPixel(rightBound)},${yToPixel(0)}`);
+            
+            return points.join(' ');
+          };
+          
+          return (
+            <div style={{ 
+              fontFamily: 'Arial, sans-serif', 
+              padding: '40px',
+              maxWidth: '1400px',
+              margin: '0 auto',
+              backgroundColor: '#f5f5f5'
+            }}>
+              <h1 style={{ textAlign: 'center', color: '#2c3e50', marginBottom: '10px', fontSize: '36px', fontWeight: 'bold' }}>
+                Regiones de Rechazo y No Rechazo
+              </h1>
+              <h2 style={{ textAlign: 'center', color: '#34495e', fontSize: '18px', fontWeight: 'normal', marginTop: '0', marginBottom: '40px' }}>
+                Niveles de Significación en la Distribución Normal Estándar
+              </h2>
+              
+              <div style={{ 
+                display: 'flex',
+                gap: '40px',
+                alignItems: 'flex-start'
+              }}>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '20px',
+                  minWidth: '450px'
+                }}>
+                  
+                  {/* Nivel A */}
+                  <div style={{ 
+                    backgroundColor: '#fff', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: '2px solid #e74c3c',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '15px'
+                    }}>
+                      <h3 style={{ margin: '0', color: '#e74c3c', fontSize: '18px' }}>Nivel A</h3>
+                      <span style={{ color: '#e74c3c', fontSize: '18px', fontWeight: 'bold' }}>α = {alphaA}%</span>
+                    </div>
+                    
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="10"
+                      step="0.1"
+                      value={alphaA}
+                      onChange={(e) => setAlphaA(Number(e.target.value))}
+                      style={{ 
+                        width: '100%', 
+                        height: '8px',
+                        marginBottom: '15px',
+                        accentColor: '#3498db'
+                      }}
+                    />
+                    
+                    <div style={{ marginTop: '15px' }}>
+                      <span style={{ 
+                        fontSize: '14px', 
+                        color: '#2c3e50', 
+                        fontWeight: 'bold',
+                        marginRight: '15px'
+                      }}>
+                        Sombrear:
+                      </span>
+                      <button
+                        onClick={() => setShadeTypeA('rejection')}
+                        style={{
+                          padding: '6px 12px',
+                          border: shadeTypeA === 'rejection' ? '2px solid #e74c3c' : '1px solid #bdc3c7',
+                          backgroundColor: shadeTypeA === 'rejection' ? '#fdf2f2' : '#fff',
+                          color: shadeTypeA === 'rejection' ? '#e74c3c' : '#2c3e50',
+                          borderRadius: '4px',
+                          marginRight: '8px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        Rechazo
+                      </button>
+                      <button
+                        onClick={() => setShadeTypeA('acceptance')}
+                        style={{
+                          padding: '6px 12px',
+                          border: shadeTypeA === 'acceptance' ? '2px solid #e74c3c' : '1px solid #bdc3c7',
+                          backgroundColor: shadeTypeA === 'acceptance' ? '#fdf2f2' : '#fff',
+                          color: shadeTypeA === 'acceptance' ? '#e74c3c' : '#2c3e50',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        No Rechazo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Nivel B */}
+                  <div style={{ 
+                    backgroundColor: '#fff', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: '2px solid #3498db',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '15px'
+                    }}>
+                      <h3 style={{ margin: '0', color: '#3498db', fontSize: '18px' }}>Nivel B</h3>
+                      <span style={{ color: '#3498db', fontSize: '18px', fontWeight: 'bold' }}>α = {alphaB}%</span>
+                    </div>
+                    
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="10"
+                      step="0.1"
+                      value={alphaB}
+                      onChange={(e) => setAlphaB(Number(e.target.value))}
+                      style={{ 
+                        width: '100%', 
+                        height: '8px',
+                        marginBottom: '15px',
+                        accentColor: '#3498db'
+                      }}
+                    />
+                    
+                    <div style={{ marginTop: '15px' }}>
+                      <span style={{ 
+                        fontSize: '14px', 
+                        color: '#2c3e50', 
+                        fontWeight: 'bold',
+                        marginRight: '15px'
+                      }}>
+                        Sombrear:
+                      </span>
+                      <button
+                        onClick={() => setShadeTypeB('rejection')}
+                        style={{
+                          padding: '6px 12px',
+                          border: shadeTypeB === 'rejection' ? '2px solid #3498db' : '1px solid #bdc3c7',
+                          backgroundColor: shadeTypeB === 'rejection' ? '#f0f8ff' : '#fff',
+                          color: shadeTypeB === 'rejection' ? '#3498db' : '#2c3e50',
+                          borderRadius: '4px',
+                          marginRight: '8px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        Rechazo
+                      </button>
+                      <button
+                        onClick={() => setShadeTypeB('acceptance')}
+                        style={{
+                          padding: '6px 12px',
+                          border: shadeTypeB === 'acceptance' ? '2px solid #3498db' : '1px solid #bdc3c7',
+                          backgroundColor: shadeTypeB === 'acceptance' ? '#f0f8ff' : '#fff',
+                          color: shadeTypeB === 'acceptance' ? '#3498db' : '#2c3e50',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        No Rechazo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* z observado - NUEVO */}
+                  <div style={{ 
+                    backgroundColor: '#fff', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: '2px solid #9b59b6',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '15px'
+                    }}>
+                      <h3 style={{ margin: '0', color: '#9b59b6', fontSize: '18px' }}>Z Observado</h3>
+                      <span style={{ color: '#9b59b6', fontSize: '18px', fontWeight: 'bold' }}>{zObservado.toFixed(2)}</span>
+                    </div>
+                    
+                    <input
+                      type="range"
+                      min="-4"
+                      max="4"
+                      step="0.01"
+                      value={zObservado}
+                      onChange={(e) => setZObservado(Number(e.target.value))}
+                      style={{ 
+                        width: '100%', 
+                        height: '8px',
+                        accentColor: '#9b59b6'
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Tipo de Prueba */}
+                  <div style={{ 
+                    backgroundColor: '#fff', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: '1px solid #bdc3c7',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '18px' }}>
+                      Tipo de Prueba
+                    </h3>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { value: 'dos_colas', label: 'Dos Colas' },
+                        { value: 'cola_izq', label: 'Cola Izquierda' },
+                        { value: 'cola_der', label: 'Cola Derecha' }
+                      ].map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => setTestType(option.value)}
+                          style={{
+                            padding: '12px',
+                            border: testType === option.value ? '2px solid #34495e' : '1px solid #bdc3c7',
+                            backgroundColor: testType === option.value ? '#ecf0f1' : '#fff',
+                            color: '#2c3e50',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            textAlign: 'center',
+                            width: '100%'
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Visualizar */}
+                  <div style={{ 
+                    backgroundColor: '#fff', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: '1px solid #bdc3c7',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '18px' }}>
+                      Visualizar
+                    </h3>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { value: 'A', label: 'Solo Nivel A' },
+                        { value: 'B', label: 'Solo Nivel B' },
+                        { value: 'ambos', label: 'Ambos Niveles' }
+                      ].map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => setActiveLevel(option.value)}
+                          style={{
+                            padding: '12px',
+                            border: activeLevel === option.value ? '2px solid #34495e' : '1px solid #bdc3c7',
+                            backgroundColor: activeLevel === option.value ? '#ecf0f1' : '#fff',
+                            color: '#2c3e50',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            textAlign: 'center',
+                            width: '100%'
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Gráfico */}
+                <div style={{ flex: 1 }}>
+                  <svg width={width} height={height} style={{ backgroundColor: '#fff', border: '1px solid #bdc3c7' }}>
+                    {/* Ejes */}
+                    <line
+                      x1={padding}
+                      y1={height - padding}
+                      x2={width - padding}
+                      y2={height - padding}
+                      stroke="#2c3e50"
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1={padding}
+                      y1={padding}
+                      x2={padding}
+                      y2={height - padding}
+                      stroke="#2c3e50"
+                      strokeWidth="2"
+                    />
+                    
+                    {/* Marcas en el eje X */}
+                    {[-3, -2, -1, 0, 1, 2, 3].map(x => (
+                      <g key={x}>
+                        <line
+                          x1={xToPixel(x)}
+                          y1={height - padding}
+                          x2={xToPixel(x)}
+                          y2={height - padding + 8}
+                          stroke="#2c3e50"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={xToPixel(x)}
+                          y={height - padding + 25}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#2c3e50"
+                        >
+                          {x}
+                        </text>
+                      </g>
+                    ))}
+                    
+                    {/* Sombreados para Nivel A */}
+                    {(activeLevel === 'A' || activeLevel === 'ambos') && (
+                      <>
+                        {testType === 'dos_colas' && (
+                          <>
+                            {shadeTypeA === 'rejection' && (
+                              <>
+                                <polygon
+                                  points={getShadePolygon(xMin, criticalPoints.pointsA.left)}
+                                  fill="#e74c3c"
+                                  opacity="0.4"
+                                />
+                                <polygon
+                                  points={getShadePolygon(criticalPoints.pointsA.right, xMax)}
+                                  fill="#e74c3c"
+                                  opacity="0.4"
+                                />
+                              </>
+                            )}
+                            {shadeTypeA === 'acceptance' && (
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsA.left, criticalPoints.pointsA.right)}
+                                fill="#e74c3c"
+                                opacity="0.4"
+                              />
+                            )}
+                          </>
+                        )}
+                        {testType === 'cola_izq' && (
+                          <>
+                            {shadeTypeA === 'rejection' && (
+                              <polygon
+                                points={getShadePolygon(xMin, criticalPoints.pointsA.left)}
+                                fill="#e74c3c"
+                                opacity="0.4"
+                              />
+                            )}
+                            {shadeTypeA === 'acceptance' && (
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsA.left, xMax)}
+                                fill="#e74c3c"
+                                opacity="0.4"
+                              />
+                            )}
+                          </>
+                        )}
+                        {testType === 'cola_der' && (
+                          <>
+                            {shadeTypeA === 'rejection' && (
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsA.right, xMax)}
+                                fill="#e74c3c"
+                                opacity="0.4"
+                              />
+                            )}
+                            {shadeTypeA === 'acceptance' && (
+                              <polygon
+                                points={getShadePolygon(xMin, criticalPoints.pointsA.right)}
+                                fill="#e74c3c"
+                                opacity="0.4"
+                              />
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Sombreados para Nivel B */}
+                    {(activeLevel === 'B' || activeLevel === 'ambos') && (
+                      <>
+                        {testType === 'dos_colas' && (
+                          <>
+                            {shadeTypeB === 'rejection' && (
+                              <>
+                                <polygon
+                                  points={getShadePolygon(xMin, criticalPoints.pointsB.left)}
+                                  fill="#3498db"
+                                  opacity="0.3"
+                                />
+                                <polygon
+                                  points={getShadePolygon(criticalPoints.pointsB.right, xMax)}
+                                  fill="#3498db"
+                                  opacity="0.3"
+                                />
+                              </>
+                            )}
+                            {shadeTypeB === 'acceptance' && (
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsB.left, criticalPoints.pointsB.right)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                            )}
+                          </>
+                        )}
+                        {testType === 'cola_izq' && (
+                          <>
+                            {shadeTypeB === 'rejection' && (
+                              <polygon
+                                points={getShadePolygon(xMin, criticalPoints.pointsB.left)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                            )}
+                            {shadeTypeB === 'acceptance' && (
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsB.left, xMax)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                            )}
+                          </>
+                        )}
+                        {testType === 'cola_der' && (
+                          <>
+                            {shadeTypeB === 'rejection' && (
+                              <polygon
+                                points={getShadePolygon(criticalPoints.pointsB.right, xMax)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                            )}
+                            {shadeTypeB === 'acceptance' && (
+                              <polygon
+                                points={getShadePolygon(xMin, criticalPoints.pointsB.right)}
+                                fill="#3498db"
+                                opacity="0.3"
+                              />
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Curva normal */}
+                    <polyline
+                      points={curvePoints}
+                      fill="none"
+                      stroke="#2c3e50"
+                      strokeWidth="3"
+                    />
+                    
+                    {/* Líneas y puntos críticos A */}
+                    {criticalPoints.pointsA.left && (activeLevel === 'A' || activeLevel === 'ambos') && (
+                      <>
+                        <line
+                          x1={xToPixel(criticalPoints.pointsA.left)}
+                          y1={yToPixel(0)}
+                          x2={xToPixel(criticalPoints.pointsA.left)}
+                          y2={yToPixel(normalPDF(criticalPoints.pointsA.left))}
+                          stroke="#e74c3c"
+                          strokeWidth="2.5"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsA.left)}
+                          cy={yToPixel(normalPDF(criticalPoints.pointsA.left))}
+                          r="5"
+                          fill="#e74c3c"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsA.left)}
+                          cy={yToPixel(0)}
+                          r="5"
+                          fill="#e74c3c"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={xToPixel(criticalPoints.pointsA.left)}
+                          y={yToPixel(0) + 35}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#e74c3c"
+                          fontWeight="bold"
+                        >
+                          {criticalPoints.pointsA.left.toFixed(2)}
+                        </text>
+                      </>
+                    )}
+                    {criticalPoints.pointsA.right && (activeLevel === 'A' || activeLevel === 'ambos') && (
+                      <>
+                        <line
+                          x1={xToPixel(criticalPoints.pointsA.right)}
+                          y1={yToPixel(0)}
+                          x2={xToPixel(criticalPoints.pointsA.right)}
+                          y2={yToPixel(normalPDF(criticalPoints.pointsA.right))}
+                          stroke="#e74c3c"
+                          strokeWidth="2.5"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsA.right)}
+                          cy={yToPixel(normalPDF(criticalPoints.pointsA.right))}
+                          r="5"
+                          fill="#e74c3c"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsA.right)}
+                          cy={yToPixel(0)}
+                          r="5"
+                          fill="#e74c3c"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={xToPixel(criticalPoints.pointsA.right)}
+                          y={yToPixel(0) + 35}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#e74c3c"
+                          fontWeight="bold"
+                        >
+                          {criticalPoints.pointsA.right.toFixed(2)}
+                        </text>
+                      </>
+                    )}
+                    
+                    {/* Líneas y puntos críticos B */}
+                    {criticalPoints.pointsB.left && (activeLevel === 'B' || activeLevel === 'ambos') && (
+                      <>
+                        <line
+                          x1={xToPixel(criticalPoints.pointsB.left)}
+                          y1={yToPixel(0)}
+                          x2={xToPixel(criticalPoints.pointsB.left)}
+                          y2={yToPixel(normalPDF(criticalPoints.pointsB.left))}
+                          stroke="#3498db"
+                          strokeWidth="2.5"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsB.left)}
+                          cy={yToPixel(normalPDF(criticalPoints.pointsB.left))}
+                          r="5"
+                          fill="#3498db"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsB.left)}
+                          cy={yToPixel(0)}
+                          r="5"
+                          fill="#3498db"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={xToPixel(criticalPoints.pointsB.left)}
+                          y={yToPixel(0) + 50}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#3498db"
+                          fontWeight="bold"
+                        >
+                          {criticalPoints.pointsB.left.toFixed(2)}
+                        </text>
+                      </>
+                    )}
+                    {criticalPoints.pointsB.right && (activeLevel === 'B' || activeLevel === 'ambos') && (
+                      <>
+                        <line
+                          x1={xToPixel(criticalPoints.pointsB.right)}
+                          y1={yToPixel(0)}
+                          x2={xToPixel(criticalPoints.pointsB.right)}
+                          y2={yToPixel(normalPDF(criticalPoints.pointsB.right))}
+                          stroke="#3498db"
+                          strokeWidth="2.5"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsB.right)}
+                          cy={yToPixel(normalPDF(criticalPoints.pointsB.right))}
+                          r="5"
+                          fill="#3498db"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <circle
+                          cx={xToPixel(criticalPoints.pointsB.right)}
+                          cy={yToPixel(0)}
+                          r="5"
+                          fill="#3498db"
+                          stroke="#fff"
+                          strokeWidth="2"
+                        />
+                        <text
+                          x={xToPixel(criticalPoints.pointsB.right)}
+                          y={yToPixel(0) + 50}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#3498db"
+                          fontWeight="bold"
+                        >
+                          {criticalPoints.pointsB.right.toFixed(2)}
+                        </text>
+                      </>
+                    )}
+                    
+                    {/* NUEVO: Círculo del z observado en el eje X */}
+                    <circle
+                      cx={xToPixel(zObservado)}
+                      cy={yToPixel(0)}
+                      r="8"
+                      fill="#9b59b6"
+                      stroke="#fff"
+                      strokeWidth="3"
+                    />
+                    
+                    {/* Etiqueta del eje X */}
+                    <text
+                      x={width / 2}
+                      y={height - 10}
+                      textAnchor="middle"
+                      fontSize="14"
+                      fill="#333"
+                      fontWeight="bold"
+                    >
+                      z
+                    </text>
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Firma */}
+              <div style={{
+                textAlign: 'center',
+                marginTop: '40px',
+                padding: '20px',
+                fontSize: '14px',
+                color: '#555',
+                borderTop: '1px solid #ddd'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Sergio Ruminot - 2025</div>
+                <div>Departamento de Estadística - FAEA</div>
+                <div>Universidad Nacional del Comahue</div>
+              </div>
+            </div>
+          );
+        }
+
+        // Renderizar la aplicación
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
