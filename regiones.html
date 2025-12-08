@@ -13,16 +13,105 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f7;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #424242 0%, #212121 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .app-content {
+            padding: 40px 30px;
+        }
+
+        footer {
+            background: linear-gradient(135deg, #424242 0%, #212121 100%);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        footer p {
+            margin-bottom: 10px;
+        }
+
+        footer a {
+            color: #d1d1d6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="container">
+        <header>
+            <h1>Regiones de Rechazo y No Rechazo</h1>
+            <p>Niveles de Significación en la Distribución Normal Estándar</p>
+        </header>
+
+        <div class="app-content">
+            <div id="root"></div>
+        </div>
+
+        <footer>
+            <p><strong>Sergio Ruminot</strong></p>
+            <p>Universidad Nacional del Comahue - FAEA</p>
+            <p>Departamento de Estadística</p>
+            <p style="margin-top: 15px;">
+                <a href="https://github.com/sergioruminot" target="_blank">GitHub</a> | 
+                <a href="mailto:ruminotsergioc@gmail.com">Contacto</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.7;">
+                © 2024 - Herramientas educativas de código abierto
+            </p>
+        </footer>
+    </div>
     
     <script type="text/babel">
         const { useState, useMemo } = React;
@@ -92,7 +181,7 @@
           // Estado para seleccionar qué nivel visualizar
           const [activeLevel, setActiveLevel] = useState('ambos');
           
-          // Estado para el valor z observado (NUEVA FUNCIONALIDAD)
+          // Estado para el valor z observado
           const [zObservado, setZObservado] = useState(0);
           
           // Cálculo de puntos críticos
@@ -175,181 +264,176 @@
           
           return (
             <div style={{ 
-              fontFamily: 'Arial, sans-serif', 
-              padding: '40px',
-              maxWidth: '1400px',
-              margin: '0 auto',
-              backgroundColor: '#f5f5f5'
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              maxWidth: '100%',
+              margin: '0 auto'
             }}>
-              <h1 style={{ textAlign: 'center', color: '#2c3e50', marginBottom: '10px', fontSize: '36px', fontWeight: 'bold' }}>
-                Regiones de Rechazo y No Rechazo
-              </h1>
-              <h2 style={{ textAlign: 'center', color: '#34495e', fontSize: '18px', fontWeight: 'normal', marginTop: '0', marginBottom: '40px' }}>
-                Niveles de Significación en la Distribución Normal Estándar
-              </h2>
               
+              {/* Layout principal */}
               <div style={{ 
                 display: 'flex',
-                gap: '40px',
-                alignItems: 'flex-start'
+                gap: '30px',
+                alignItems: 'stretch',
+                flexWrap: 'wrap'
               }}>
                 
+                {/* COLUMNA IZQUIERDA: Todos los controles */}
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
                   gap: '20px',
-                  minWidth: '450px'
+                  minWidth: '450px',
+                  maxWidth: '500px',
+                  flex: '0 0 auto'
                 }}>
                   
-                  {/* Nivel A */}
+                  {/* FILA 1: Nivel A y Nivel B lado a lado */}
                   <div style={{ 
-                    backgroundColor: '#fff', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    border: '2px solid #e74c3c',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '15px'
                   }}>
+                    
+                    {/* Nivel A */}
                     <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      marginBottom: '15px'
+                      backgroundColor: '#fff', 
+                      padding: '20px', 
+                      borderRadius: '8px',
+                      border: '2px solid #e74c3c',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}>
-                      <h3 style={{ margin: '0', color: '#e74c3c', fontSize: '18px' }}>Nivel A</h3>
-                      <span style={{ color: '#e74c3c', fontSize: '18px', fontWeight: 'bold' }}>α = {alphaA}%</span>
-                    </div>
-                    
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="10"
-                      step="0.1"
-                      value={alphaA}
-                      onChange={(e) => setAlphaA(Number(e.target.value))}
-                      style={{ 
-                        width: '100%', 
-                        height: '8px',
-                        marginBottom: '15px',
-                        accentColor: '#3498db'
-                      }}
-                    />
-                    
-                    <div style={{ marginTop: '15px' }}>
-                      <span style={{ 
-                        fontSize: '14px', 
-                        color: '#2c3e50', 
-                        fontWeight: 'bold',
-                        marginRight: '15px'
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '15px'
                       }}>
-                        Sombrear:
-                      </span>
-                      <button
-                        onClick={() => setShadeTypeA('rejection')}
-                        style={{
-                          padding: '6px 12px',
-                          border: shadeTypeA === 'rejection' ? '2px solid #e74c3c' : '1px solid #bdc3c7',
-                          backgroundColor: shadeTypeA === 'rejection' ? '#fdf2f2' : '#fff',
-                          color: shadeTypeA === 'rejection' ? '#e74c3c' : '#2c3e50',
-                          borderRadius: '4px',
-                          marginRight: '8px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
+                        <h3 style={{ margin: '0', color: '#e74c3c', fontSize: '16px' }}>Nivel A</h3>
+                        <span style={{ color: '#e74c3c', fontSize: '16px', fontWeight: 'bold' }}>α = {alphaA}%</span>
+                      </div>
+                      
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="10"
+                        step="0.1"
+                        value={alphaA}
+                        onChange={(e) => setAlphaA(Number(e.target.value))}
+                        style={{ 
+                          width: '100%', 
+                          height: '8px',
+                          marginBottom: '15px',
+                          accentColor: '#e74c3c'
                         }}
-                      >
-                        Rechazo
-                      </button>
-                      <button
-                        onClick={() => setShadeTypeA('acceptance')}
-                        style={{
-                          padding: '6px 12px',
-                          border: shadeTypeA === 'acceptance' ? '2px solid #e74c3c' : '1px solid #bdc3c7',
-                          backgroundColor: shadeTypeA === 'acceptance' ? '#fdf2f2' : '#fff',
-                          color: shadeTypeA === 'acceptance' ? '#e74c3c' : '#2c3e50',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
+                      />
+                      
+                      <div style={{ marginTop: '15px' }}>
+                        <div style={{ fontSize: '12px', color: '#2c3e50', fontWeight: 'bold', marginBottom: '8px' }}>
+                          Sombrear:
+                        </div>
+                        <button
+                          onClick={() => setShadeTypeA('rejection')}
+                          style={{
+                            padding: '6px 10px',
+                            border: shadeTypeA === 'rejection' ? '2px solid #e74c3c' : '1px solid #bdc3c7',
+                            backgroundColor: shadeTypeA === 'rejection' ? '#fdf2f2' : '#fff',
+                            color: shadeTypeA === 'rejection' ? '#e74c3c' : '#2c3e50',
+                            borderRadius: '4px',
+                            marginRight: '6px',
+                            cursor: 'pointer',
+                            fontSize: '11px'
+                          }}
+                        >
+                          Rechazo
+                        </button>
+                        <button
+                          onClick={() => setShadeTypeA('acceptance')}
+                          style={{
+                            padding: '6px 10px',
+                            border: shadeTypeA === 'acceptance' ? '2px solid #e74c3c' : '1px solid #bdc3c7',
+                            backgroundColor: shadeTypeA === 'acceptance' ? '#fdf2f2' : '#fff',
+                            color: shadeTypeA === 'acceptance' ? '#e74c3c' : '#2c3e50',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '11px'
+                          }}
+                        >
+                          No Rechazo
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Nivel B */}
+                    <div style={{ 
+                      backgroundColor: '#fff', 
+                      padding: '20px', 
+                      borderRadius: '8px',
+                      border: '2px solid #3498db',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '15px'
+                      }}>
+                        <h3 style={{ margin: '0', color: '#3498db', fontSize: '16px' }}>Nivel B</h3>
+                        <span style={{ color: '#3498db', fontSize: '16px', fontWeight: 'bold' }}>α = {alphaB}%</span>
+                      </div>
+                      
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="10"
+                        step="0.1"
+                        value={alphaB}
+                        onChange={(e) => setAlphaB(Number(e.target.value))}
+                        style={{ 
+                          width: '100%', 
+                          height: '8px',
+                          marginBottom: '15px',
+                          accentColor: '#3498db'
                         }}
-                      >
-                        No Rechazo
-                      </button>
+                      />
+                      
+                      <div style={{ marginTop: '15px' }}>
+                        <div style={{ fontSize: '12px', color: '#2c3e50', fontWeight: 'bold', marginBottom: '8px' }}>
+                          Sombrear:
+                        </div>
+                        <button
+                          onClick={() => setShadeTypeB('rejection')}
+                          style={{
+                            padding: '6px 10px',
+                            border: shadeTypeB === 'rejection' ? '2px solid #3498db' : '1px solid #bdc3c7',
+                            backgroundColor: shadeTypeB === 'rejection' ? '#f0f8ff' : '#fff',
+                            color: shadeTypeB === 'rejection' ? '#3498db' : '#2c3e50',
+                            borderRadius: '4px',
+                            marginRight: '6px',
+                            cursor: 'pointer',
+                            fontSize: '11px'
+                          }}
+                        >
+                          Rechazo
+                        </button>
+                        <button
+                          onClick={() => setShadeTypeB('acceptance')}
+                          style={{
+                            padding: '6px 10px',
+                            border: shadeTypeB === 'acceptance' ? '2px solid #3498db' : '1px solid #bdc3c7',
+                            backgroundColor: shadeTypeB === 'acceptance' ? '#f0f8ff' : '#fff',
+                            color: shadeTypeB === 'acceptance' ? '#3498db' : '#2c3e50',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '11px'
+                          }}
+                        >
+                          No Rechazo
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Nivel B */}
-                  <div style={{ 
-                    backgroundColor: '#fff', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    border: '2px solid #3498db',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      marginBottom: '15px'
-                    }}>
-                      <h3 style={{ margin: '0', color: '#3498db', fontSize: '18px' }}>Nivel B</h3>
-                      <span style={{ color: '#3498db', fontSize: '18px', fontWeight: 'bold' }}>α = {alphaB}%</span>
-                    </div>
-                    
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="10"
-                      step="0.1"
-                      value={alphaB}
-                      onChange={(e) => setAlphaB(Number(e.target.value))}
-                      style={{ 
-                        width: '100%', 
-                        height: '8px',
-                        marginBottom: '15px',
-                        accentColor: '#3498db'
-                      }}
-                    />
-                    
-                    <div style={{ marginTop: '15px' }}>
-                      <span style={{ 
-                        fontSize: '14px', 
-                        color: '#2c3e50', 
-                        fontWeight: 'bold',
-                        marginRight: '15px'
-                      }}>
-                        Sombrear:
-                      </span>
-                      <button
-                        onClick={() => setShadeTypeB('rejection')}
-                        style={{
-                          padding: '6px 12px',
-                          border: shadeTypeB === 'rejection' ? '2px solid #3498db' : '1px solid #bdc3c7',
-                          backgroundColor: shadeTypeB === 'rejection' ? '#f0f8ff' : '#fff',
-                          color: shadeTypeB === 'rejection' ? '#3498db' : '#2c3e50',
-                          borderRadius: '4px',
-                          marginRight: '8px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        Rechazo
-                      </button>
-                      <button
-                        onClick={() => setShadeTypeB('acceptance')}
-                        style={{
-                          padding: '6px 12px',
-                          border: shadeTypeB === 'acceptance' ? '2px solid #3498db' : '1px solid #bdc3c7',
-                          backgroundColor: shadeTypeB === 'acceptance' ? '#f0f8ff' : '#fff',
-                          color: shadeTypeB === 'acceptance' ? '#3498db' : '#2c3e50',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        No Rechazo
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* z observado - NUEVO */}
+                  {/* FILA 2: z observado (full width) */}
                   <div style={{ 
                     backgroundColor: '#fff', 
                     padding: '20px', 
@@ -382,88 +466,112 @@
                     />
                   </div>
                   
-                  {/* Tipo de Prueba */}
+                  {/* FILA 3: Tipo de Prueba y Visualizar lado a lado */}
                   <div style={{ 
-                    backgroundColor: '#fff', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    border: '1px solid #bdc3c7',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '15px'
                   }}>
-                    <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '18px' }}>
-                      Tipo de Prueba
-                    </h3>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[
-                        { value: 'dos_colas', label: 'Dos Colas' },
-                        { value: 'cola_izq', label: 'Cola Izquierda' },
-                        { value: 'cola_der', label: 'Cola Derecha' }
-                      ].map(option => (
-                        <button
-                          key={option.value}
-                          onClick={() => setTestType(option.value)}
-                          style={{
-                            padding: '12px',
-                            border: testType === option.value ? '2px solid #34495e' : '1px solid #bdc3c7',
-                            backgroundColor: testType === option.value ? '#ecf0f1' : '#fff',
-                            color: '#2c3e50',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            textAlign: 'center',
-                            width: '100%'
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                    {/* Tipo de Prueba */}
+                    <div style={{ 
+                      backgroundColor: '#fff', 
+                      padding: '20px', 
+                      borderRadius: '8px',
+                      border: '1px solid #bdc3c7',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '16px' }}>
+                        Tipo de Prueba
+                      </h3>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                          { value: 'dos_colas', label: 'Dos Colas' },
+                          { value: 'cola_izq', label: 'Cola Izquierda' },
+                          { value: 'cola_der', label: 'Cola Derecha' }
+                        ].map(option => (
+                          <button
+                            key={option.value}
+                            onClick={() => setTestType(option.value)}
+                            style={{
+                              padding: '10px',
+                              border: testType === option.value ? '2px solid #34495e' : '1px solid #bdc3c7',
+                              backgroundColor: testType === option.value ? '#ecf0f1' : '#fff',
+                              color: '#2c3e50',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              textAlign: 'center',
+                              width: '100%'
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Visualizar */}
-                  <div style={{ 
-                    backgroundColor: '#fff', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    border: '1px solid #bdc3c7',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}>
-                    <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '18px' }}>
-                      Visualizar
-                    </h3>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[
-                        { value: 'A', label: 'Solo Nivel A' },
-                        { value: 'B', label: 'Solo Nivel B' },
-                        { value: 'ambos', label: 'Ambos Niveles' }
-                      ].map(option => (
-                        <button
-                          key={option.value}
-                          onClick={() => setActiveLevel(option.value)}
-                          style={{
-                            padding: '12px',
-                            border: activeLevel === option.value ? '2px solid #34495e' : '1px solid #bdc3c7',
-                            backgroundColor: activeLevel === option.value ? '#ecf0f1' : '#fff',
-                            color: '#2c3e50',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            textAlign: 'center',
-                            width: '100%'
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                    {/* Visualizar */}
+                    <div style={{ 
+                      backgroundColor: '#fff', 
+                      padding: '20px', 
+                      borderRadius: '8px',
+                      border: '1px solid #bdc3c7',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                      <h3 style={{ margin: '0 0 15px 0', color: '#2c3e50', fontSize: '16px' }}>
+                        Visualizar
+                      </h3>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                          { value: 'A', label: 'Solo Nivel A' },
+                          { value: 'B', label: 'Solo Nivel B' },
+                          { value: 'ambos', label: 'Ambos Niveles' }
+                        ].map(option => (
+                          <button
+                            key={option.value}
+                            onClick={() => setActiveLevel(option.value)}
+                            style={{
+                              padding: '10px',
+                              border: activeLevel === option.value ? '2px solid #34495e' : '1px solid #bdc3c7',
+                              backgroundColor: activeLevel === option.value ? '#ecf0f1' : '#fff',
+                              color: '#2c3e50',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              textAlign: 'center',
+                              width: '100%'
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                {/* Gráfico */}
-                <div style={{ flex: 1 }}>
-                  <svg width={width} height={height} style={{ backgroundColor: '#fff', border: '1px solid #bdc3c7' }}>
+                {/* GRÁFICO - Ocupa todo el espacio restante */}
+                <div style={{ 
+                  flex: '1',
+                  minWidth: '400px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg 
+                    viewBox={`0 0 ${width} ${height}`}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #bdc3c7',
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '600px'
+                    }}
+                  >
                     {/* Ejes */}
                     <line
                       x1={padding}
@@ -803,7 +911,7 @@
                       </>
                     )}
                     
-                    {/* NUEVO: Círculo del z observado en el eje X */}
+                    {/* Círculo del z observado en el eje X */}
                     <circle
                       cx={xToPixel(zObservado)}
                       cy={yToPixel(0)}
@@ -826,20 +934,6 @@
                     </text>
                   </svg>
                 </div>
-              </div>
-              
-              {/* Firma */}
-              <div style={{
-                textAlign: 'center',
-                marginTop: '40px',
-                padding: '20px',
-                fontSize: '14px',
-                color: '#555',
-                borderTop: '1px solid #ddd'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Sergio Ruminot - 2025</div>
-                <div>Departamento de Estadística - FAEA</div>
-                <div>Universidad Nacional del Comahue</div>
               </div>
             </div>
           );
