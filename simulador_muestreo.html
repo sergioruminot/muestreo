@@ -31,14 +31,14 @@
     input[type="checkbox"]{ transform: translateY(1px); }
     .two-cols { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .btn { width:100%; padding: 12px; border:none; border-radius: 12px; font-weight: 800; cursor:pointer; transition: .2s; margin-bottom: 10px; letter-spacing:.2px; }
-    .btn.primary { background:#2563eb; color:#fff; }
-    .btn.primary:hover { background:#1d4ed8; }
-    .btn.success { background:#16a34a; color:#fff; }
-    .btn.success:hover { background:#15803d; }
-    .btn.danger { background:#dc2626; color:#fff; }
-    .btn.danger:hover { background:#b91c1c; }
-    .btn.excel { background:#10b981; color:#fff; }
-    .btn.excel:hover { background:#059669; }
+    .btn.primary { background:#277F8E; color:#fff; }   /* Azul petróleo - Generar población */
+    .btn.primary:hover { background:#1e6270; }
+    .btn.success { background:#1FA187; color:#fff; }   /* Verde turquesa - Tomar muestras */
+    .btn.success:hover { background:#188c73; }
+    .btn.danger { background:#818181; color:#fff; }    /* Gris - Limpiar */
+    .btn.danger:hover { background:#6a6a6a; }
+    .btn.excel { background:#4AC16D; color:#fff; }     /* Verde claro - Descargar Excel */
+    .btn.excel:hover { background:#3da359; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .stats { background:#eef2ff; border-left:4px solid #4f46e5; padding: 12px; border-radius: 10px; margin: 10px 0 14px; }
     .stats h3 { font-size: 12px; color:#4338ca; margin-bottom: 6px; }
@@ -433,7 +433,7 @@
             datasets:[{
               label:'Frecuencia', 
               data:counts, 
-              backgroundColor:'rgba(37,99,235,0.7)', 
+              backgroundColor:'rgba(39,127,142,0.7)', 
               borderWidth:0,
               barPercentage: 1.0,
               categoryPercentage: 1.0
@@ -456,7 +456,7 @@
         const datasets = [{
           label:'Frecuencia (x̄)', 
           data:counts, 
-          backgroundColor:'rgba(34,197,94,0.7)', 
+          backgroundColor:'rgba(31,161,135,0.7)', 
           borderWidth:0,
           barPercentage: 1.0,
           categoryPercentage: 1.0
